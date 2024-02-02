@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Socket.io</title>
+  <style>
+    .chat{
+      margin-left: 0px;
+      margin-right:0px;
+      border:solid black 1px;
+      width:350px;
+    }
+    .chat-body{
+      height:500px;
+      width:350px;
+      overflow-y: scroll;
+      overflow-x: hidden;
+      scroll-behavior: smooth 100ms;
+
+      border:solid black 1px;
+    }
+  </style>
+</head>
+<body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js" integrity="sha512-YeeA/Qxn5hYdkukScTCNNOhTrv1C2RubAGButJ1rmgQwZf/HdRaCGl+JAVkqsqaNRaYNHdheiuKKuPf9mDcqKg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<div class=chat>
+
+    <h2>chat</h2>
+
+  <div class=chat-body>
+    
+  </div>
+  <input type=text id=chat-name value=743><br>
+  <input type=text id=chat-form>
+  <input type=button id=send-btn value=send>
+  <p>今いる人</p>
+  <div id=viewer>
+  </div>
+</div>
+  
+  <script>
+    const socket = io();
+    let msg_num = 0;
+
+    if(document.cookie == ""){
+      document.getElementById("chat-name").value = "743";
+    }else{
+      document.getElementById("chat-name").value = document.cookie
+    }
+    
+    socket.on("res",(msg)=>{
+      document.querySelector(".chat-body").innerHTML += `<span id=msg${msg_num}>${msg}</span><br>`;
+      msg_num++
+      
+    scroll()
+    })
+
+    socket.on("join",(log)=>{
+      document.querySelector(".chat-body").innerHTML = ""
+      console.log(log)
+      log.push("<span style='color:red;'>Server : サーバーに接続されました。</span>")
+
+      for(var i=0;i<=log.length-1;i++){
+        document.querySelector(".chat-body").innerHTML += `<span id=msg${msg_num}>${log[i]}</span><br>`;
+        msg_num++
+      }
+    })
+
+    socket.on("get-name",()=>{
+      let name = document.querySelector("#chat-name").value;
+      socket.emit("res-name",name);
+    })
+    socket.on("reload",()=>{
+      location.reload()
+    })
+    socket.on("name-list",(nameList)=>{
+      document.getElementById("viewer").innerHTML = arraySort(nameList).join(" , ")
+    })
+    document.querySelector("#send-btn").addEventListener("click",()=>{
+      send_msg()
+    })
+    
+    document.querySelector("#chat-form").addEventListener("keydown",(e)=>{
+      if(e.key == "Enter"){
+        send_msg()
+      }
+
+    })
+document.querySelector("#chat-name").addEventListener("keydown",(e)=>{
+  if(document.querySelector("#chat-name").value.length > 7){
+    alert("名前は８文字までにしてください。")
+    document.querySelector("#chat-name").value = document.querySelector("#chat-name").value.slice(0,6)
+}
+})
+    function send_msg(){
+      document.querySelector("#chat-name").value = document.querySelector("#chat-name").value.slice(0,7)
+      var chat_name =document.getElementById("chat-name").value; 
+      var chat_form =document.getElementById("chat-form").value;
+      if(chat_form.includes("<iframe")){
+        alert("iframeは許可されていません!");
+      }else{
+      socket.emit("send",`${chat_name} : ${chat_form}`)
+      }
+      document.getElementById("chat-form").value=""
+    }
+
+    function scroll(){
+      function scrollToBottom(element) {
+        element.scrollTop = element.scrollHeight;
+      }
+
+      const div = document.querySelector(".chat-body");
+      // はみ出した部分までスクロールする
+      scrollToBottom(div);
+
+    }
+      function arraySort(array) {
+        return array.sort((a, b) => a[0].charCodeAt(0) - b[0].charCodeAt(0));
+      }
+
+    setInterval(()=>{
+      document.cookie = document.getElementById("chat-name").value
+    },1000)
+  </script>
+</body>
+</html>
